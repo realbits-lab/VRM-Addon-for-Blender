@@ -24,6 +24,7 @@
 !/pyproject.toml
 !/scripts/*.bat
 !/scripts/*.dockerfile
+!/scripts/*.png
 !/scripts/*.sh
 !/tests/resources
 !/docs/*.jpg

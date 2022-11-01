@@ -424,7 +424,7 @@ def main() -> int:
         extensions = {}
         json_dict["extensions"] = extensions
     extensions["VRMC_vrm"] = {
-        "specVersion": "1.0-beta",
+        "specVersion": "1.0",
         "meta": {
             "licenseUrl": "https://vrm.dev/licenses/1.0/",
             "name": os.path.basename(sys.argv[1]),

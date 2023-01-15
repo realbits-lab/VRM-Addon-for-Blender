@@ -469,6 +469,17 @@ class SpringBone1ColliderGroupPropertyGroup(
     search_one_time_uuid: bpy.props.StringProperty()  # type: ignore[valid-type]
 
 
+# https://github.com/vrm-c/vrm-specification/tree/993a90a5bda9025f3d9e2923ad6dea7506f88553/specification/VRMC_springBone-1.0#initialization
+class SpringBone1JointStatePropertyGroup(bpy.types.PropertyGroup):  # type: ignore[misc]
+    initialized: bpy.props.BoolProperty()  # type: ignore[valid-type]
+    prev_tail: bpy.props.FloatVectorProperty(size=3)  # type: ignore[valid-type]
+    current_tail: bpy.props.FloatVectorProperty(size=3)  # type: ignore[valid-type]
+    bone_axis: bpy.props.FloatVectorProperty(size=3)  # type: ignore[valid-type]
+    bone_length: bpy.props.FloatVectorProperty()  # type: ignore[valid-type]
+    initial_local_matrix: bpy.props.FloatVectorProperty(size=16)  # type: ignore[valid-type]
+    initial_local_rotation: bpy.props.FloatVectorProperty(size=4)  # type: ignore[valid-type]
+
+
 # https://github.com/vrm-c/vrm-specification/blob/6fb6baaf9b9095a84fb82c8384db36e1afeb3558/specification/VRMC_springBone-1.0-beta/schema/VRMC_springBone.joint.schema.json
 class SpringBone1JointPropertyGroup(bpy.types.PropertyGroup):  # type: ignore[misc]
     node: bpy.props.PointerProperty(type=BonePropertyGroup)  # type: ignore[valid-type]
@@ -497,7 +508,7 @@ class SpringBone1JointPropertyGroup(bpy.types.PropertyGroup):  # type: ignore[mi
     gravity_dir: bpy.props.FloatVectorProperty(  # type: ignore[valid-type]
         name="Gravity Dir",  # noqa: F722
         size=3,
-        default=(0, -1, 0),  # noqa: F722
+        default=(0, 0, -1),  # noqa: F722
         subtype="XYZ",  # noqa: F821
     )
 
@@ -507,6 +518,8 @@ class SpringBone1JointPropertyGroup(bpy.types.PropertyGroup):  # type: ignore[mi
         min=0,
         max=1.0,
     )
+
+    state: bpy.props.PointerProperty(type=SpringBone1JointStatePropertyGroup)  # type: ignore[valid-type]
 
     # for UI
     show_expanded: bpy.props.BoolProperty()  # type: ignore[valid-type]

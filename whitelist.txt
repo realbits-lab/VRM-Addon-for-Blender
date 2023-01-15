@@ -6,6 +6,7 @@
 absolutize
 accessor
 accessors
+acos
 addon
 addons
 albedo
@@ -236,6 +237,7 @@ vec
 vec3
 vec4
 vector3
+verlet
 vertexcode
 vertexid
 verts

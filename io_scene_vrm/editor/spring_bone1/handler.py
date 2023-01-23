@@ -85,24 +85,22 @@ def update_spring_joint_pair(
         logger.error(f'"{head_bone_name}" and "{tail_bone_name}" are not parented')
         return
 
-    head_rest_bone_matrix_world = (
-        Matrix(obj.matrix_world)
-        @ head_pose_bone.bone.convert_local_to_pose(
-            matrix=Matrix(),
-            matrix_local=head_pose_bone.bone.matrix_local,
-            parent_matrix=head_pose_bone.parent.matrix,
-            parent_matrix_local=head_pose_bone.parent.bone.matrix_local,
-        )
+    head_rest_bone_matrix_world = Matrix(
+        obj.matrix_world
+    ) @ head_pose_bone.bone.convert_local_to_pose(
+        matrix=Matrix(),
+        matrix_local=head_pose_bone.bone.matrix_local,
+        parent_matrix=head_pose_bone.parent.matrix,
+        parent_matrix_local=head_pose_bone.parent.bone.matrix_local,
     )
 
-    tail_rest_bone_matrix_world = (
-        Matrix(obj.matrix_world)
-        @ tail_pose_bone.bone.convert_local_to_pose(
-            matrix=Matrix(),
-            matrix_local=tail_pose_bone.bone.matrix_local,
-            parent_matrix=head_pose_bone.parent.matrix,
-            parent_matrix_local=head_pose_bone.parent.bone.matrix_local,
-        )
+    tail_rest_bone_matrix_world = Matrix(
+        obj.matrix_world
+    ) @ tail_pose_bone.bone.convert_local_to_pose(
+        matrix=Matrix(),
+        matrix_local=tail_pose_bone.bone.matrix_local,
+        parent_matrix=head_pose_bone.parent.matrix,
+        parent_matrix_local=head_pose_bone.parent.bone.matrix_local,
     )
 
     # https://github.com/vrm-c/vrm-specification/blob/993a90a5bda9025f3d9e2923ad6dea7506f88553/specification/VRMC_springBone-1.0/README.ja.md#%E5%88%9D%E6%9C%9F%E5%8C%96
@@ -126,7 +124,8 @@ def update_spring_joint_pair(
     bone_axis = head_rest_to_tail_rest_translation_world.normalized()
     bone_length = head_rest_to_tail_rest_translation_world.length
 
-    if not head_spring_joint.state.initialized:
+    # if not head_spring_joint.state.initialized:
+    if bpy.context.scene.frame_current == 1:
         logger.warning("Initialized")
         head_spring_joint.state.prev_tail = current_tail[:]
         head_spring_joint.state.initialized = True

@@ -112,7 +112,8 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
             for obj in export_objects
         )
 
-        if is_vrm1:
+        # if is_vrm1:
+        if True:
             vrm_exporter: AbstractBaseVrmExporter = Gltf2AddonVrmExporter(
                 context, export_objects
             )

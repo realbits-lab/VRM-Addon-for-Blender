@@ -41,7 +41,9 @@ logger = get_logger(__name__)
 
 class LegacyVrmExporter(AbstractBaseVrmExporter):
     class KhrTextureTransform:
-        def __init__(self, offset: Tuple[float, float], scale: Tuple[float, float]):
+        def __init__(
+                self, offset: Tuple[float, float],
+                scale: Tuple[float, float]):
             self.offset = offset
             self.scale = scale
 
@@ -70,8 +72,15 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         self.glb_bin_collector = GlbBinCollection()
         self.use_dummy_armature = False
         self.mesh_name_to_index: Dict[str, int] = {}
-        self.outline_modifier_visibilities: Dict[str, Dict[str, Tuple[bool, bool]]] = {}
-        armatures = [obj for obj in self.export_objects if obj.type == "ARMATURE"]
+        self.outline_modifier_visibilities: Dict[str,
+                                                 Dict[str, Tuple[bool, bool]]] = {}
+        cameras = [obj for obj in self.export_objects if obj.type == "CAMERA"]
+        if len(cameras) > 0:
+            self.camera = cameras[0]
+        print("cameras: ", cameras)
+        print("self.camera: ", self.camera)
+        armatures = [obj for obj in self.export_objects
+                     if obj.type == "ARMATURE"]
         if armatures:
             self.armature = armatures[0]
         else:
@@ -256,7 +265,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             else len(bpy.data.images) + used_images.index(used_image)
         )
         for image in sorted(used_images, key=image_to_image_index):
-            image_bin, filetype = io_scene_gltf2_support.image_to_image_bytes(image)
+            image_bin, filetype = io_scene_gltf2_support.image_to_image_bytes(
+                image)
             ImageBin(image_bin, image.name, filetype, self.glb_bin_collector)
 
     def armature_to_node_and_scenes_dict(self) -> None:
@@ -264,9 +274,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         scene_nodes: List[Json] = []
         skin_dicts: List[Json] = []
 
-        bone_id_dict = {
-            b.name: bone_id for bone_id, b in enumerate(self.armature.pose.bones)
-        }
+        bone_id_dict = {b.name: bone_id for bone_id,
+                        b in enumerate(self.armature.pose.bones)}
 
         def bone_to_node(b_bone: bpy.types.PoseBone) -> Dict[str, Json]:
             if b_bone.parent is not None:
@@ -276,7 +285,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 parent_world_head = (
                     self.armature.matrix_world @ Matrix.Translation(b_bone.parent.head)
                 ).to_translation()
-                translation = [world_head[i] - parent_world_head[i] for i in range(3)]
+                translation = [world_head[i] - parent_world_head[i]
+                               for i in range(3)]
             else:
                 translation = (
                     self.armature.matrix_world @ b_bone.matrix
@@ -294,8 +304,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
 
         human_bone_node_names = [
             human_bone.node.value
-            for human_bone in self.armature.data.vrm_addon_extension.vrm0.humanoid.human_bones
-        ]
+            for human_bone in
+            self.armature.data.vrm_addon_extension.vrm0.humanoid.human_bones]
 
         for bone in self.armature.pose.bones:
             if bone.parent is not None:
@@ -342,7 +352,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 joints = []
                 skin_dict["joints"] = joints
             for node_id in joints:
-                if not isinstance(node_id, int) or not 0 <= node_id < len(node_dicts):
+                if not isinstance(node_id, int) or not 0 <= node_id < len(
+                        node_dicts):
                     continue
                 node = node_dicts[node_id]
                 if not isinstance(node, dict):
@@ -387,6 +398,25 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             skin_dict["inverseBindMatrices"] = im_bin.accessor_id
 
         self.json_dict.update({"scenes": [{"nodes": scene_nodes}]})
+
+        # * Fix x and y axis to vrm axis.
+        euler = self.camera.rotation_quaternion.to_euler("XYZ")
+        euler.x = euler.x - math.pi / 2
+        euler.y = euler.y + math.pi
+        quat = euler.to_quaternion()
+
+        node_dicts.append(
+            {
+                "camera": 0,
+                "name": "camera",
+                "rotation": [quat.x, quat.y, quat.z, quat.w],
+                "translation": [
+                    self.camera.location.x,
+                    self.camera.location.z,
+                    self.camera.location.y,
+                ]
+            }
+        )
         self.json_dict.update({"nodes": node_dicts})
         self.json_dict.update({"skins": skin_dicts})
 
@@ -396,8 +426,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         gltf2_io_texture_images: List[Tuple[str, bytes, int]] = []
 
         image_id_dict = {
-            image.name: image.image_id for image in self.glb_bin_collector.image_bins
-        }
+            image.name: image.image_id
+            for image in self.glb_bin_collector.image_bins}
         sampler_dict: Dict[Tuple[int, int, int, int], int] = {}
         texture_dict: Dict[Tuple[int, int], int] = {}
 
@@ -592,7 +622,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 for k, val in MaterialMtoon0.float_props_exchange_dict.items()
                 if val is not None
             ]:
-                float_val = shader.get_float_value(mtoon_shader_node, float_prop)
+                float_val = shader.get_float_value(
+                    mtoon_shader_node, float_prop)
                 if float_val is not None:
                     mtoon_float_dict[float_key] = float_val
                     if float_key == "_OutlineWidthMode":
@@ -603,22 +634,27 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                         mtoon_float_dict[float_key] = int(outline_color_mode)
 
             if outline_width_mode < 1:
-                set_mtoon_outline_keywords(keyword_map, False, False, False, False)
+                set_mtoon_outline_keywords(
+                    keyword_map, False, False, False, False)
             elif outline_width_mode < 2:
                 if outline_color_mode < 1:
-                    set_mtoon_outline_keywords(keyword_map, True, False, True, False)
+                    set_mtoon_outline_keywords(
+                        keyword_map, True, False, True, False)
                 else:
-                    set_mtoon_outline_keywords(keyword_map, True, False, False, True)
+                    set_mtoon_outline_keywords(
+                        keyword_map, True, False, False, True)
 
             elif outline_width_mode >= 2:
                 if outline_color_mode < 1:
-                    set_mtoon_outline_keywords(keyword_map, False, True, True, False)
+                    set_mtoon_outline_keywords(
+                        keyword_map, False, True, True, False)
                 else:
-                    set_mtoon_outline_keywords(keyword_map, False, True, False, True)
+                    set_mtoon_outline_keywords(
+                        keyword_map, False, True, False, True)
 
             vec_props = list(
-                dict.fromkeys(MaterialMtoon0.vector_props_exchange_dict.values())
-            )
+                dict.fromkeys(
+                    MaterialMtoon0.vector_props_exchange_dict.values()))
             for remove_vec_prop in MaterialMtoon0.texture_kind_exchange_dict.values():
                 if remove_vec_prop in vec_props:
                     vec_props.remove(remove_vec_prop)
@@ -628,7 +664,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 for k, v in MaterialMtoon0.vector_props_exchange_dict.items()
                 if v in vec_props
             ]:
-                vector_val = shader.get_rgba_value(mtoon_shader_node, vector_prop)
+                vector_val = shader.get_rgba_value(
+                    mtoon_shader_node, vector_prop)
                 if vector_val is not None:
                     mtoon_vector_dict[vector_key] = vector_val
 
@@ -678,15 +715,14 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                             ]
                         else:
                             mtoon_vector_dict[texture_key] = [
-                                uv_offset_scaling_node.inputs["Location"].default_value[
-                                    0
-                                ],
-                                uv_offset_scaling_node.inputs["Location"].default_value[
-                                    1
-                                ],
-                                uv_offset_scaling_node.inputs["Scale"].default_value[0],
-                                uv_offset_scaling_node.inputs["Scale"].default_value[1],
-                            ]
+                                uv_offset_scaling_node.inputs["Location"].
+                                default_value[0],
+                                uv_offset_scaling_node.inputs["Location"].
+                                default_value[1],
+                                uv_offset_scaling_node.inputs["Scale"].
+                                default_value[0],
+                                uv_offset_scaling_node.inputs["Scale"].
+                                default_value[1], ]
                     else:
                         mtoon_vector_dict[texture_key] = [0, 0, 1, 1]
                     main_texture_transform = LegacyVrmExporter.KhrTextureTransform(
@@ -730,7 +766,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             if b_mat.blend_method == "OPAQUE":
                 material_prop_setter(0, 1, 0, 1, False, -1, "Opaque")
             elif b_mat.blend_method == "CLIP":
-                material_prop_setter(1, 1, 0, 1, True, 2450, "TransparentCutout")
+                material_prop_setter(1, 1, 0, 1, True, 2450,
+                                     "TransparentCutout")
                 mtoon_float_dict["_Cutoff"] = b_mat.alpha_threshold
             else:  # transparent and Z_TRANSPARENCY or Raytrace
                 transparent_with_z_write = shader.get_float_value(
@@ -740,9 +777,11 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     not isinstance(transparent_with_z_write, (float, int))
                     or math.fabs(transparent_with_z_write) < float_info.epsilon
                 ):
-                    material_prop_setter(2, 5, 10, 0, False, 3000, "Transparent")
+                    material_prop_setter(
+                        2, 5, 10, 0, False, 3000, "Transparent")
                 else:
-                    material_prop_setter(3, 5, 10, 1, False, 2501, "Transparent")
+                    material_prop_setter(
+                        3, 5, 10, 1, False, 2501, "Transparent")
             keyword_map.update(
                 {"_ALPHABLEND_ON": b_mat.blend_method not in ("OPAQUE", "CLIP")}
             )
@@ -807,7 +846,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             gltf_dict["floatProperties"] = {}
             gltf_dict["vectorProperties"] = {}
             gltf_dict["textureProperties"] = {}
-            gltf_dict["extras"] = {"VRM_Addon_for_Blender_legacy_gltf_material": {}}
+            gltf_dict["extras"] = {
+                "VRM_Addon_for_Blender_legacy_gltf_material": {}}
 
             if b_mat.blend_method == "OPAQUE":
                 transparent_method = "OPAQUE"
@@ -846,14 +886,17 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     gltf_shader_node, socket_name
                 )
                 if img is not None:
-                    pbr_dict[texture_type] = {"index": add_texture(*img), "texCoord": 0}
+                    pbr_dict[texture_type] = {
+                        "index": add_texture(*img),
+                        "texCoord": 0}
                 else:
                     logger.warning(f"No image: {socket_name}")
 
             pbr_tex_add("normalTexture", "normal")
             pbr_tex_add("emissiveTexture", "emissive_texture")
             pbr_tex_add("occlusionTexture", "occlusion_texture")
-            emissive_factor = shader.get_rgb_value(gltf_shader_node, "emissive_color")
+            emissive_factor = shader.get_rgb_value(
+                gltf_shader_node, "emissive_color")
             if emissive_factor is None:
                 emissive_factor = (0, 0, 0)
             pbr_dict["emissiveFactor"] = list(emissive_factor)
@@ -876,7 +919,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 transzw_shader_node, "Main_Texture"
             )
             if color_tex is not None:
-                zw_dict["textureProperties"] = {"_MainTex": add_texture(*color_tex)}
+                zw_dict["textureProperties"] = {
+                    "_MainTex": add_texture(*color_tex)}
                 zw_dict["vectorProperties"] = {"_MainTex": [0, 0, 1, 1]}
             pbr_dict = pbr_fallback(
                 b_mat, base_color_texture=color_tex, transparent_method="BLEND"
@@ -1013,8 +1057,7 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
 
             try:
                 from io_scene_gltf2.blender.exp.gltf2_blender_gather_materials import (
-                    gather_material,
-                )  # pyright: reportMissingImports=false
+                    gather_material, )  # pyright: reportMissingImports=false
             except ImportError:
                 logger.exception("Failed to import glTF 2.0 Add-on")
                 return fallback
@@ -1049,7 +1092,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 if bpy.app.version >= (3, 2):
                     # https://github.com/KhronosGroup/glTF-Blender-IO/blob/master/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_primitives.py#L71-L96
                     # https://github.com/KhronosGroup/glTF-Blender-IO/blob/9e08d423a803da52eb08fbc93d9aa99f3f681a27/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_materials.py#L42
-                    gltf2_io_material = gather_material(b_mat, 0, export_settings)
+                    gltf2_io_material = gather_material(
+                        b_mat, 0, export_settings)
                 elif bpy.app.version >= (2, 91):
                     # https://github.com/KhronosGroup/glTF-Blender-IO/blob/abd8380e19dbe5e5fb9042513ad6b744032bc9bc/addons/io_scene_gltf2/blender/exp/gltf2_blender_gather_materials.py#L32
                     gltf2_io_material = gather_material(b_mat, export_settings)
@@ -1071,7 +1115,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 if isinstance(double_sided, bool):
                     pbr_dict["doubleSided"] = double_sided
 
-                emissive_factor = getattr(gltf2_io_material, "emissive_factor", None)
+                emissive_factor = getattr(
+                    gltf2_io_material, "emissive_factor", None)
                 if isinstance(emissive_factor, abc.Sequence):
                     pbr_dict["emissiveFactor"] = make_json(emissive_factor)
 
@@ -1107,8 +1152,7 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                             and emissive_strength != 1.0
                         ):
                             extensions_dict["KHR_materials_emissive_strength"] = {
-                                "emissiveStrength": emissive_strength,
-                            }
+                                "emissiveStrength": emissive_strength, }
 
                     if extensions_dict:
                         pbr_dict["extensions"] = extensions_dict
@@ -1140,16 +1184,14 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     )
                     if isinstance(base_color_factor, abc.Sequence):
                         pbr_metallic_roughness_dict["baseColorFactor"] = make_json(
-                            base_color_factor
-                        )
+                            base_color_factor)
 
                     assign_dict(
-                        pbr_metallic_roughness_dict,
-                        "baseColorTexture",
+                        pbr_metallic_roughness_dict, "baseColorTexture",
                         add_gltf2_io_texture(
-                            getattr(pbr_metallic_roughness, "base_color_texture", None)
-                        ),
-                    )
+                            getattr(
+                                pbr_metallic_roughness, "base_color_texture",
+                                None)),)
 
                     metallic_factor = getattr(
                         pbr_metallic_roughness, "metallic_factor", None
@@ -1288,11 +1330,9 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 keyword_map["_NORMALMAP"] = False
 
             float_properties["_ShadeShift"] = convert.mtoon_shading_shift_1_to_0(
-                mtoon.shading_toony_factor, mtoon.shading_shift_factor
-            )
+                mtoon.shading_toony_factor, mtoon.shading_shift_factor)
             float_properties["_ShadeToony"] = convert.mtoon_shading_toony_1_to_0(
-                mtoon.shading_toony_factor, mtoon.shading_shift_factor
-            )
+                mtoon.shading_toony_factor, mtoon.shading_shift_factor)
             float_properties[
                 "_IndirectLightIntensity"
             ] = convert.mtoon_gi_equalization_to_intensity(mtoon.gi_equalization_factor)
@@ -1312,8 +1352,10 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     root.emissive_factor[2] * emissive_strength,
                 )
             )
-            vector_properties["_EmissionColor"] = list(hdr_emissive_factor) + [1]
-            material_dict["emissiveFactor"] = list(hdr_emissive_factor.normalized())
+            vector_properties["_EmissionColor"] = list(
+                hdr_emissive_factor) + [1]
+            material_dict["emissiveFactor"] = list(
+                hdr_emissive_factor.normalized())
             assign_dict(
                 material_dict,
                 "emissiveTexture",
@@ -1327,7 +1369,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             if pbr_metallic_roughness_dict:
                 material_dict["pbrMetallicRoughness"] = pbr_metallic_roughness_dict
 
-            vector_properties["_ShadeColor"] = list(mtoon.shade_color_factor) + [1]
+            vector_properties["_ShadeColor"] = list(
+                mtoon.shade_color_factor) + [1]
             add_mtoon1_downgraded_texture(
                 mtoon.shade_multiply_texture,
                 texture_properties,
@@ -1342,9 +1385,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 khr_texture_transform=None,
             )
 
-            vector_properties["_RimColor"] = list(mtoon.parametric_rim_color_factor) + [
-                1
-            ]
+            vector_properties["_RimColor"] = list(
+                mtoon.parametric_rim_color_factor) + [1]
             add_mtoon1_downgraded_texture(
                 mtoon.rim_multiply_texture,
                 texture_properties,
@@ -1352,7 +1394,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 khr_texture_transform,
             )
 
-            vector_properties["_OutlineColor"] = list(mtoon.outline_color_factor) + [1]
+            vector_properties["_OutlineColor"] = list(
+                mtoon.outline_color_factor) + [1]
             add_mtoon1_downgraded_texture(
                 mtoon.outline_width_multiply_texture,
                 texture_properties,
@@ -1383,23 +1426,28 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             float_properties["_OutlineWidth"] = 0.0
             if mtoon.outline_width_mode == mtoon.OUTLINE_WIDTH_MODE_NONE:
                 float_properties["_OutlineWidthMode"] = 0
-                set_mtoon_outline_keywords(keyword_map, False, False, False, False)
+                set_mtoon_outline_keywords(
+                    keyword_map, False, False, False, False)
             elif mtoon.outline_width_mode == mtoon.OUTLINE_WIDTH_MODE_WORLD_COORDINATES:
                 float_properties["_OutlineWidth"] = mtoon.outline_width_factor * 100
                 float_properties["_OutlineWidthMode"] = 1
                 if outline_color_mode == 0:
-                    set_mtoon_outline_keywords(keyword_map, True, False, True, False)
+                    set_mtoon_outline_keywords(
+                        keyword_map, True, False, True, False)
                 else:
-                    set_mtoon_outline_keywords(keyword_map, True, False, False, True)
+                    set_mtoon_outline_keywords(
+                        keyword_map, True, False, False, True)
             elif (
                 mtoon.outline_width_mode == mtoon.OUTLINE_WIDTH_MODE_SCREEN_COORDINATES
             ):
                 float_properties["_OutlineWidth"] = mtoon.outline_width_factor * 200
                 float_properties["_OutlineWidthMode"] = 2
                 if outline_color_mode == 0:
-                    set_mtoon_outline_keywords(keyword_map, False, True, True, False)
+                    set_mtoon_outline_keywords(
+                        keyword_map, False, True, True, False)
                 else:
-                    set_mtoon_outline_keywords(keyword_map, False, True, False, True)
+                    set_mtoon_outline_keywords(
+                        keyword_map, False, True, False, True)
 
             if root.alpha_mode == root.ALPHA_MODE_OPAQUE:
                 blend_mode = 0
@@ -1435,7 +1483,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 render_queue = 2501 + mtoon.render_queue_offset_number
                 render_type = "Transparent"
 
-            keyword_map["_ALPHABLEND_ON"] = b_mat.blend_method not in ("OPAQUE", "CLIP")
+            keyword_map["_ALPHABLEND_ON"] = b_mat.blend_method not in (
+                "OPAQUE", "CLIP")
             keyword_map["_ALPHAPREMULTIPLY_ON"] = False
 
             float_properties["_BlendMode"] = blend_mode
@@ -1477,10 +1526,10 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             pbr_dict: Dict[str, Json] = {}
             if b_mat.vrm_addon_extension.mtoon1.enabled:
                 material_properties_dict, pbr_dict = make_mtoon1_downgraded_mat_dict(
-                    b_mat
-                )
+                    b_mat)
             elif not b_mat.node_tree:
-                material_properties_dict, pbr_dict = make_non_vrm_mat_dict(b_mat)
+                material_properties_dict, pbr_dict = make_non_vrm_mat_dict(
+                    b_mat)
             elif b_mat.get("vrm_shader") == "MToon_unversioned":
                 for node in b_mat.node_tree.nodes:
                     if node.type == "OUTPUT_MATERIAL":
@@ -1505,11 +1554,11 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     if node.type == "OUTPUT_MATERIAL":
                         zw_shader_node = node.inputs["Surface"].links[0].from_node
                         material_properties_dict, pbr_dict = make_transzw_mat_dict(
-                            b_mat, zw_shader_node
-                        )
+                            b_mat, zw_shader_node)
                         break
             else:
-                material_properties_dict, pbr_dict = make_non_vrm_mat_dict(b_mat)
+                material_properties_dict, pbr_dict = make_non_vrm_mat_dict(
+                    b_mat)
 
             glb_material_list.append(pbr_dict)
             vrm_material_props_list.append(material_properties_dict)
@@ -1571,7 +1620,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             # https://github.com/KhronosGroup/glTF-Blender-IO/pull/1129
             split_normals = kb.normals_split_get()
 
-            vertex_normal_vectors = [Vector([0.0, 0.0, 0.0])] * len(mesh_data.vertices)
+            vertex_normal_vectors = [
+                Vector([0.0, 0.0, 0.0])] * len(mesh_data.vertices)
             for loop_index in range(len(split_normals) // 3):
                 loop = mesh_data.loops[loop_index]
                 if loop.vertex_index in exclusion_vertex_indices:
@@ -1611,9 +1661,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 zip(*[iter(v)] * 3),
                 zip(*[iter(vert_base_normal_dict[reference_key_name])] * 3),
             ):
-                values.append(
-                    [vert_morph_normal[i] - vert_base_normal[i] for i in range(3)]
-                )
+                values.append([vert_morph_normal[i] - vert_base_normal[i]
+                               for i in range(3)])
             morph_normal_diff_dict.update({k: values})
         return morph_normal_diff_dict
 
@@ -1741,7 +1790,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 "scale": [1, 1, 1],  # このへんは規約なので
             }
             if is_skin_mesh:
-                node_dict["translation"] = [0, 0, 0]  # skinnedmeshはtransformを無視される
+                # skinnedmeshはtransformを無視される
+                node_dict["translation"] = [0, 0, 0]
 
             node_dicts = self.json_dict.get("nodes")
             if not isinstance(node_dicts, list):
@@ -1753,7 +1803,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
             mesh_node_id = len(node_dicts) - 1
 
             if is_skin_mesh:
-                first_scene_nodes = deep.get(self.json_dict, ["scenes", 0, "nodes"])
+                first_scene_nodes = deep.get(
+                    self.json_dict, ["scenes", 0, "nodes"])
                 if isinstance(first_scene_nodes, list):
                     first_scene_nodes.append(mesh_node_id)
             else:
@@ -1794,7 +1845,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     else:
                         base_pos = mesh.parent.matrix_world.to_translation()
                 else:
-                    first_scene_nodes = deep.get(self.json_dict, ["scenes", 0, "nodes"])
+                    first_scene_nodes = deep.get(
+                        self.json_dict, ["scenes", 0, "nodes"])
                     if isinstance(first_scene_nodes, list):
                         first_scene_nodes.append(mesh_node_id)
                 mesh_pos = mesh.matrix_world.to_translation()
@@ -1854,15 +1906,16 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 if isinstance(material_dict, dict)
             }
             material_slot_dict = {
-                i: mat.name for i, mat in enumerate(mesh.material_slots) if mat.name
-            }
+                i: mat.name for i, mat in enumerate(mesh.material_slots)
+                if mat.name}
             node_id_dict: Dict[str, int] = {
                 str(node_dict.get("name")): i
                 for i, node_dict in enumerate(node_dicts)
                 if isinstance(node_dict, dict)
             }
 
-            v_group_name_dict = {i: vg.name for i, vg in enumerate(mesh.vertex_groups)}
+            v_group_name_dict = {i: vg.name for i,
+                                 vg in enumerate(mesh.vertex_groups)}
             fmin, fmax = gltf.FLOAT_NEGATIVE_MAX, gltf.FLOAT_POSITIVE_MAX
             unique_vertex_id = 0
             # {(uv...,vertex_index):unique_vertex_id} (uvと頂点番号が同じ頂点は同じものとして省くようにする)
@@ -1901,8 +1954,7 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                 }
                 # {morphname:{vertexid:[diff_X,diff_y,diff_z]}}
                 morph_normal_diff_dict = self.fetch_morph_vertex_normal_difference(
-                    mesh_data
-                )
+                    mesh_data)
             position_bin = bytearray()
             position_min_max = [[fmax, fmax, fmax], [fmin, fmin, fmin]]
             normal_bin = bytearray()
@@ -1924,7 +1976,9 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     uv_list = []
                     for uvlayer_name in uvlayers_dict.values():
                         uv_layer = bm.loops.layers.uv[uvlayer_name]
-                        uv_list.extend([loop[uv_layer].uv[0], loop[uv_layer].uv[1]])
+                        uv_list.extend(
+                            [loop[uv_layer].uv[0],
+                             loop[uv_layer].uv[1]])
 
                     # 頂点のノーマルではなくloopのノーマルを使う。これで失うものはあると思うが、
                     # glTF 2.0アドオンと同一にしておくのが無難だろうと判断。
@@ -1936,7 +1990,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                     )  # keyがなければNoneを返す
                     if cached_vert_id is not None:
                         primitive_index = None
-                        material_slot_name = material_slot_dict.get(material_index)
+                        material_slot_name = material_slot_dict.get(
+                            material_index)
                         if isinstance(material_slot_name, str):
                             primitive_index = mat_id_dict[material_slot_name]
                         primitive_index_bin_dict[primitive_index].extend(
@@ -1987,7 +2042,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                             if v_group.weight < float_info.epsilon:
                                 continue
 
-                            weight_and_joint_list.append((v_group.weight, joint_id))
+                            weight_and_joint_list.append(
+                                (v_group.weight, joint_id))
 
                         while len(weight_and_joint_list) < 4:
                             weight_and_joint_list.append((0.0, 0))
@@ -2000,7 +2056,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                             )
                             weight_and_joint_list = weight_and_joint_list[:4]
 
-                        weights = [weight for weight, _ in weight_and_joint_list]
+                        weights = [weight for weight, _ in
+                                   weight_and_joint_list]
                         joints = [joint for _, joint in weight_and_joint_list]
 
                         if sum(weights) < float_info.epsilon:
@@ -2048,17 +2105,18 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
                             joints = [bone_index, 0, 0, 0]
 
                         normalized_weights = normalize_weights_compatible_with_gl_float(
-                            weights
-                        )
+                            weights)
                         joints_bin.extend(unsigned_short_vec4_packer(*joints))
-                        weights_bin.extend(float_vec4_packer(*normalized_weights))
+                        weights_bin.extend(
+                            float_vec4_packer(
+                                *normalized_weights))
 
                     vert_location = self.axis_blender_to_glb(loop.vert.co)
                     position_bin.extend(float_vec3_packer(*vert_location))
                     self.min_max(position_min_max, vert_location)
                     normal_bin.extend(
-                        float_vec3_packer(*self.axis_blender_to_glb(vert_normal))
-                    )
+                        float_vec3_packer(
+                            *self.axis_blender_to_glb(vert_normal)))
                     primitive_index = None
                     material_slot_name = material_slot_dict.get(material_index)
                     if isinstance(material_slot_name, str):
@@ -2237,7 +2295,8 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         v = addon_version()
         if os.environ.get("BLENDER_VRM_USE_TEST_EXPORTER_VERSION") == "true":
             v = (999, 999, 999)
-        return "saturday06_blender_vrm_exporter_experimental_" + ".".join(map(str, v))
+        return "saturday06_blender_vrm_exporter_experimental_" + ".".join(
+            map(str, v))
 
     def gltf_meta_to_dict(self) -> None:
         extensions_used = [
@@ -2393,9 +2452,9 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         else:
             name = [
                 human_bone.node.value
-                for human_bone in self.armature.data.vrm_addon_extension.vrm0.humanoid.human_bones
-                if human_bone.bone == "head"
-            ][0]
+                for human_bone in
+                self.armature.data.vrm_addon_extension.vrm0.humanoid.human_bones
+                if human_bone.bone == "head"][0]
             first_person_dict["firstPersonBone"] = node_name_id_dict[name]
 
         first_person_dict["firstPersonBoneOffset"] = {
@@ -2593,15 +2652,11 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
 
                 collider_dict: Dict[str, Json] = {}
                 offset = [
-                    collider_object.matrix_world.to_translation()[i]
-                    - (
-                        self.armature.matrix_world
-                        @ Matrix.Translation(
-                            self.armature.pose.bones[collider_object.parent_bone].head
-                        )
-                    ).to_translation()[i]
-                    for i in range(3)
-                ]
+                    collider_object.matrix_world.to_translation()[i] -
+                    (self.armature.matrix_world @ Matrix.Translation(
+                        self.armature.pose.bones
+                         [collider_object.parent_bone].head)).
+                    to_translation()[i] for i in range(3)]
 
                 object_mean_scale = statistics.mean(
                     abs(s) for s in collider_object.matrix_world.to_scale()
@@ -2707,6 +2762,33 @@ class LegacyVrmExporter(AbstractBaseVrmExporter):
         )
 
     def pack(self) -> None:
+        print("self.camera.data.clip_start: ", self.camera.data.clip_start)
+        print("self.camera.data.clip_end: ", self.camera.data.clip_end)
+        print("self.camera.data.angle: ", self.camera.data.angle)
+        # PERSP, ORTHO
+        print("self.camera.data.type: ", self.camera.data.type)
+
+        type = "perspective"
+        if self.camera.data.type == "PERSP":
+            type = "perspective"
+        elif self.camera.data.type == "ORTHO":
+            type = "orthographic"
+
+        self.json_dict.update({
+            "cameras": [
+                {
+                    "name": "camera",
+                    "perspective": {
+                              "aspectRatio": 1,
+                              "yfov": self.camera.data.angle,
+                              "zfar": self.camera.data.clip_end,
+                              "znear": self.camera.data.clip_start,
+                              },
+                    "type": type
+                }
+            ]
+        })
+
         bin_json, bin_chunk = self.glb_bin_collector.pack_all()
         self.json_dict.update(bin_json)
         if not self.json_dict["meshes"]:
@@ -2732,7 +2814,8 @@ def normalize_weights_compatible_with_gl_float(
     # Simulate export and import
     weights = to_gl_float(weights)
     for _ in range(10):
-        next_weights = to_gl_float([weights[i] / sum(weights) for i in range(4)])
+        next_weights = to_gl_float(
+            [weights[i] / sum(weights) for i in range(4)])
         error = abs(1 - math.fsum(weights))
         next_error = abs(1 - math.fsum(next_weights))
         if error >= float_info.epsilon and error > next_error:

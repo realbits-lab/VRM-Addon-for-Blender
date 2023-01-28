@@ -243,7 +243,8 @@ def export_objects(
     else:
         selected_objects = list(context.selectable_objects)
 
-    exclusion_types = ["LIGHT", "CAMERA"]
+    # exclusion_types = ["LIGHT", "CAMERA"]
+    exclusion_types = ["LIGHT"]
     objects = []
     for obj in selected_objects:
         if obj.type in exclusion_types:

@@ -56,7 +56,8 @@ def export_vrm_update_addon_preferences(
         validation.WM_OT_vrm_validator.detect_errors(context, export_op.errors)
 
 
-class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[misc]
+class EXPORT_SCENE_OT_vrm(
+        bpy.types.Operator, ExportHelper):  # type: ignore[misc]
     bl_idname = "export_scene.vrm"
     bl_label = "Export VRM"
     bl_description = "Export VRM"
@@ -84,7 +85,8 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
         update=export_vrm_update_addon_preferences,
     )
 
-    errors: bpy.props.CollectionProperty(type=validation.VrmValidationError)  # type: ignore[valid-type]
+    errors: bpy.props.CollectionProperty(
+        type=validation.VrmValidationError)  # type: ignore[valid-type]
 
     def execute(self, context: bpy.types.Context) -> Set[str]:
         if not self.filepath:
@@ -112,8 +114,7 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
             for obj in export_objects
         )
 
-        # if is_vrm1:
-        if True:
+        if is_vrm1:
             vrm_exporter: AbstractBaseVrmExporter = Gltf2AddonVrmExporter(
                 context, export_objects
             )
@@ -155,8 +156,8 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
             )
 
         export_objects = search.export_objects(
-            context, bool(self.export_invisibles), bool(self.export_only_selections)
-        )
+            context, bool(self.export_invisibles),
+            bool(self.export_only_selections))
 
         armatures = [obj for obj in export_objects if obj.type == "ARMATURE"]
         if len(armatures) == 1 and armatures[0].data.vrm_addon_extension.is_vrm0():
@@ -167,7 +168,8 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
                 defer=False,
             )
             humanoid = armature.data.vrm_addon_extension.vrm0.humanoid
-            if all(b.node.value not in b.node_candidates for b in humanoid.human_bones):
+            if all(b.node.value not in b.node_candidates
+                   for b in humanoid.human_bones):
                 bpy.ops.vrm.assign_vrm0_humanoid_human_bones_automatically(
                     armature_name=armature.name
                 )
@@ -183,9 +185,9 @@ class EXPORT_SCENE_OT_vrm(bpy.types.Operator, ExportHelper):  # type: ignore[mis
             )
             human_bones = armature.data.vrm_addon_extension.vrm1.humanoid.human_bones
             if all(
-                human_bone.node.value not in human_bone.node_candidates
-                for human_bone in human_bones.human_bone_name_to_human_bone().values()
-            ):
+                    human_bone.node.value not in human_bone.node_candidates
+                    for human_bone in
+                    human_bones.human_bone_name_to_human_bone().values()):
                 bpy.ops.vrm.assign_vrm1_humanoid_human_bones_automatically(
                     armature_name=armature.name
                 )
@@ -251,11 +253,13 @@ class VRM_PT_export_error_messages(bpy.types.Panel):  # type: ignore[misc]
             )
 
 
-def menu_export(export_op: bpy.types.Operator, _context: bpy.types.Context) -> None:
+def menu_export(
+        export_op: bpy.types.Operator, _context: bpy.types.Context) -> None:
     export_op.layout.operator(EXPORT_SCENE_OT_vrm.bl_idname, text="VRM (.vrm)")
 
 
-class WM_OT_vrm_export_human_bones_assignment(bpy.types.Operator):  # type: ignore[misc]
+class WM_OT_vrm_export_human_bones_assignment(
+        bpy.types.Operator):  # type: ignore[misc]
     bl_label = "VRM Required Bones Assignment"
     bl_idname = "wm.vrm_export_human_bones_assignment"
     bl_options = {"REGISTER", "UNDO"}
@@ -295,9 +299,9 @@ class WM_OT_vrm_export_human_bones_assignment(bpy.types.Operator):  # type: igno
         return {"FINISHED"}
 
     def invoke(self, context: bpy.types.Context, _event: bpy.types.Event) -> Set[str]:
-        return cast(
-            Set[str], context.window_manager.invoke_props_dialog(self, width=700)
-        )
+        return cast(Set[str],
+                    context.window_manager.invoke_props_dialog(
+                        self, width=700))
 
     def draw(self, context: bpy.types.Context) -> None:
         preferences = get_preferences(context)
@@ -326,15 +330,14 @@ class WM_OT_vrm_export_human_bones_assignment(bpy.types.Operator):  # type: igno
         if humanoid.all_required_bones_are_assigned():
             alert_box = layout.box()
             alert_box.label(
-                text="All VRM Required Bones have been assigned.", icon="CHECKMARK"
-            )
+                text="All VRM Required Bones have been assigned.",
+                icon="CHECKMARK")
         else:
             alert_box = layout.box()
             alert_box.alert = True
             alert_box.label(
                 text="There are unassigned VRM Required Bones. Please assign all.",
-                icon="ERROR",
-            )
+                icon="ERROR",)
         draw_vrm0_humanoid_operators_layout(armature, layout)
         draw_vrm0_humanoid_required_bones_layout(armature, layout)
 
@@ -344,14 +347,15 @@ class WM_OT_vrm_export_human_bones_assignment(bpy.types.Operator):  # type: igno
         if human_bones.all_required_bones_are_assigned():
             alert_box = layout.box()
             alert_box.label(
-                text="All VRM Required Bones have been assigned.", icon="CHECKMARK"
-            )
+                text="All VRM Required Bones have been assigned.",
+                icon="CHECKMARK")
         else:
             alert_box = layout.box()
             alert_box.alert = True
             alert_column = alert_box.column()
             for error_message in human_bones.error_messages():
-                alert_column.label(text=error_message, translate=False, icon="ERROR")
+                alert_column.label(text=error_message,
+                                   translate=False, icon="ERROR")
 
         layout.operator(
             VRM_OT_assign_vrm1_humanoid_human_bones_automatically.bl_idname,

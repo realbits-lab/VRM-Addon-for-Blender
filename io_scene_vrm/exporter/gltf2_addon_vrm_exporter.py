@@ -160,7 +160,9 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         obj.parent = self.armature
         for index, bone_name in enumerate(self.armature.data.bones.keys()):
             vertex_group = obj.vertex_groups.new(name=bone_name)
-            vertex_group.add([index * 3, index * 3 + 1, index * 3 + 2], 1.0, "ADD")
+            vertex_group.add(
+                [index * 3, index * 3 + 1, index * 3 + 2],
+                1.0, "ADD")
         modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
         modifier.object = self.armature
         self.context.scene.collection.objects.link(obj)
@@ -669,8 +671,10 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         if not isinstance(image_dicts, list):
             image_dicts = []
             json_dict["images"] = image_dicts
-        if isinstance(image_index, int) and not 0 <= image_index < len(image_dicts):
-            logger.error(f"Bug: not 0 <= {image_index} < len(images)) for {image.name}")
+        if isinstance(image_index, int) and not 0 <= image_index < len(
+                image_dicts):
+            logger.error(
+                f"Bug: not 0 <= {image_index} < len(images)) for {image.name}")
             image_index = None
         if not isinstance(image_index, int):
             image_index = len(image_dicts)
@@ -938,7 +942,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         ):
             mtoon_dict["matcapFactor"] = list(mtoon.matcap_factor)
 
-        mtoon_dict["parametricRimColorFactor"] = list(mtoon.parametric_rim_color_factor)
+        mtoon_dict["parametricRimColorFactor"] = list(
+            mtoon.parametric_rim_color_factor)
         mtoon_dict[
             "parametricRimFresnelPowerFactor"
         ] = mtoon.parametric_rim_fresnel_power_factor
@@ -1016,20 +1021,18 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
             material_dict["alphaMode"] = "MASK"
         else:
             material_dict["alphaMode"] = "BLEND"
-        assign_dict(
-            material_dict, "doubleSided", not material.use_backface_culling, False
-        )
+        assign_dict(material_dict, "doubleSided",
+                    not material.use_backface_culling, False)
         assign_dict(
             pbr_metallic_roughness_dict,
             "baseColorFactor",
             shader.get_rgba_value(node, "base_Color", 0.0, 1.0),
         )
         base_color_texture_dict = Gltf2AddonVrmExporter.create_mtoon0_texture_info_dict(
-            json_dict, body_binary, node, "color_texture", image_name_to_index_dict
-        )
+            json_dict, body_binary, node, "color_texture", image_name_to_index_dict)
         assign_dict(
-            pbr_metallic_roughness_dict, "baseColorTexture", base_color_texture_dict
-        )
+            pbr_metallic_roughness_dict, "baseColorTexture",
+            base_color_texture_dict)
 
         assign_dict(
             pbr_metallic_roughness_dict,
@@ -1056,8 +1059,7 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         )
 
         normal_texture_dict = Gltf2AddonVrmExporter.create_mtoon0_texture_info_dict(
-            json_dict, body_binary, node, "normal", image_name_to_index_dict
-        )
+            json_dict, body_binary, node, "normal", image_name_to_index_dict)
         assign_dict(material_dict, "normalTexture", normal_texture_dict)
 
         assign_dict(
@@ -1144,15 +1146,13 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         material_dict["alphaMode"] = "BLEND"
         mtoon_dict["transparentWithZWrite"] = True
         mtoon_dict["renderQueueOffsetNumber"] = 0
-        assign_dict(
-            material_dict, "doubleSided", not material.use_backface_culling, False
-        )
+        assign_dict(material_dict, "doubleSided",
+                    not material.use_backface_culling, False)
         base_color_texture_dict = Gltf2AddonVrmExporter.create_mtoon0_texture_info_dict(
-            json_dict, body_binary, node, "Main_Texture", image_name_to_index_dict
-        )
+            json_dict, body_binary, node, "Main_Texture", image_name_to_index_dict)
         assign_dict(
-            pbr_metallic_roughness_dict, "baseColorTexture", base_color_texture_dict
-        )
+            pbr_metallic_roughness_dict, "baseColorTexture",
+            base_color_texture_dict)
         if base_color_texture_dict is not None:
             mtoon_dict["shadeMultiplyTexture"] = base_color_texture_dict
             material_dict["emissiveTexture"] = base_color_texture_dict
@@ -1200,7 +1200,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
             mtoon_dict["transparentWithZWrite"] = False
             mtoon_dict["renderQueueOffsetNumber"] = 0
         elif material.blend_method == "CLIP":
-            alpha_cutoff = shader.get_float_value(node, "CutoffRate", 0, float_info.max)
+            alpha_cutoff = shader.get_float_value(
+                node, "CutoffRate", 0, float_info.max)
             if alpha_cutoff is not None:
                 material_dict["alphaCutoff"] = alpha_cutoff
             else:
@@ -1221,20 +1222,18 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
             else:
                 mtoon_dict["transparentWithZWrite"] = True
         mtoon_dict["renderQueueOffsetNumber"] = 0
-        assign_dict(
-            material_dict, "doubleSided", not material.use_backface_culling, False
-        )
+        assign_dict(material_dict, "doubleSided",
+                    not material.use_backface_culling, False)
         assign_dict(
             pbr_metallic_roughness_dict,
             "baseColorFactor",
             shader.get_rgba_value(node, "DiffuseColor", 0.0, 1.0),
         )
         base_color_texture_dict = Gltf2AddonVrmExporter.create_mtoon0_texture_info_dict(
-            json_dict, body_binary, node, "MainTexture", image_name_to_index_dict
-        )
+            json_dict, body_binary, node, "MainTexture", image_name_to_index_dict)
         assign_dict(
-            pbr_metallic_roughness_dict, "baseColorTexture", base_color_texture_dict
-        )
+            pbr_metallic_roughness_dict, "baseColorTexture",
+            base_color_texture_dict)
         assign_dict(
             mtoon_dict,
             "shadeColorFactor",
@@ -1242,9 +1241,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         )
         shade_multiply_texture_dict = (
             Gltf2AddonVrmExporter.create_mtoon0_texture_info_dict(
-                json_dict, body_binary, node, "ShadeTexture", image_name_to_index_dict
-            )
-        )
+                json_dict, body_binary, node, "ShadeTexture",
+                image_name_to_index_dict))
         if shade_multiply_texture_dict is not None:
             mtoon_dict["shadeMultiplyTexture"] = shade_multiply_texture_dict
         elif base_color_texture_dict is not None:
@@ -1264,9 +1262,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         if assign_dict(
             material_dict, "normalTexture", normal_texture_dict
         ) and isinstance(normal_texture_dict, dict):
-            assign_dict(
-                normal_texture_dict, "scale", shader.get_float_value(node, "BumpScale")
-            )
+            assign_dict(normal_texture_dict, "scale",
+                        shader.get_float_value(node, "BumpScale"))
 
         shading_shift_0x = shader.get_float_value(node, "ShadeShift")
         if shading_shift_0x is None:
@@ -1284,7 +1281,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
             shading_toony_0x, shading_shift_0x
         )
 
-        gi_equalization_0x = shader.get_float_value(node, "IndirectLightIntensity")
+        gi_equalization_0x = shader.get_float_value(
+            node, "IndirectLightIntensity")
         if gi_equalization_0x is not None:
             mtoon_dict[
                 "giEqualizationFactor"
@@ -1425,7 +1423,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
         )
 
         invert_y = -1
-        uv_animation_scroll_y_speed_factor = shader.get_float_value(node, "UV_Scroll_Y")
+        uv_animation_scroll_y_speed_factor = shader.get_float_value(
+            node, "UV_Scroll_Y")
         if uv_animation_scroll_y_speed_factor is not None:
             mtoon_dict["uvAnimationScrollYSpeedFactor"] = (
                 uv_animation_scroll_y_speed_factor * invert_y
@@ -1583,7 +1582,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
                         export_format="GLB",
                         export_extras=True,
                         export_current_frame=True,
-                        use_selection=True,
+                        use_selection=False,
+                        export_cameras=True,
                     )
                 except RuntimeError as e:
                     logger.error(str(e))
@@ -1594,7 +1594,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
                         export_format="GLB",
                         export_extras=True,
                         export_current_frame=True,
-                        use_selection=True,
+                        use_selection=False,
+                        export_cameras=True,
                         export_animations=False,
                     )
                 with open(filepath, "rb") as file:
@@ -1649,7 +1650,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
 
         for key in gltf_root_non_empty_array_keys:
             list_value = json_dict.get(key)
-            json_dict[key] = list(list_value) if isinstance(list_value, list) else []
+            json_dict[key] = list(list_value) if isinstance(
+                list_value, list) else []
 
         node_dicts = json_dict.get("nodes")
         if not isinstance(node_dicts, list):
@@ -1685,9 +1687,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
                 if not extras_dict:
                     del node_dict["extras"]
 
-                armature_world_matrix = (
-                    find_node_world_matrix(node_dicts, node_index, None) or Matrix()
-                )
+                armature_world_matrix = (find_node_world_matrix(
+                    node_dicts, node_index, None) or Matrix())
 
                 # シーンにメインアーマチュアが存在したら置換する
                 scene_dicts = json_dict.get("scenes")
@@ -1712,20 +1713,23 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
                                 if search_scene_node_index == node_index:
                                     scene_node_indices.remove(scene_node_index)
                                     break
-                                if not 0 <= search_scene_node_index < len(node_dicts):
+                                if not 0 <= search_scene_node_index < len(
+                                        node_dicts):
                                     continue
                                 search_scene_node_dict = node_dicts[
                                     search_scene_node_index
                                 ]
                                 if not isinstance(search_scene_node_dict, dict):
                                     continue
-                                child_indices = search_scene_node_dict.get("children")
+                                child_indices = search_scene_node_dict.get(
+                                    "children")
                                 if not isinstance(child_indices, list):
                                     continue
                                 for child_index in child_indices:
                                     if not isinstance(child_index, int):
                                         continue
-                                    search_scene_node_indices.append(child_index)
+                                    search_scene_node_indices.append(
+                                        child_index)
 
                         child_indices = node_dict.get("children")
                         if not isinstance(child_indices, list):
@@ -1783,7 +1787,8 @@ class Gltf2AddonVrmExporter(AbstractBaseVrmExporter):
                     children = child_removing_node_dict.get("children")
                     if not isinstance(children, list):
                         continue
-                    children = [child for child in children if child != node_index]
+                    children = [child for child in children
+                                if child != node_index]
                     if children:
                         child_removing_node_dict["children"] = children
                     else:
@@ -2001,7 +2006,8 @@ def find_node_world_matrix(
         for node_index in range(len(node_dicts)):
             if node_index in all_child_indices:
                 continue
-            matrix = find_node_world_matrix(node_dicts, target_node_index, node_index)
+            matrix = find_node_world_matrix(
+                node_dicts, target_node_index, node_index)
             if matrix is not None:
                 return matrix
         return Matrix()
@@ -2054,7 +2060,11 @@ def get_node_matrix(node_dict: Dict[str, Json]) -> Matrix:
     rotation_matrix = Matrix()
     rotation = node_dict.get("rotation")
     if isinstance(rotation, list) and len(rotation) == 4:
-        quaternion = Quaternion((rotation[3], rotation[0], rotation[1], rotation[2]))
+        quaternion = Quaternion(
+            (rotation[3],
+             rotation[0],
+             rotation[1],
+             rotation[2]))
         rotation_matrix = quaternion.to_matrix().to_4x4()
 
     scale_matrix = Matrix()
